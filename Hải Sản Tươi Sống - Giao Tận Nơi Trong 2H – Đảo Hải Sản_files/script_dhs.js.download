@@ -1,0 +1,1848 @@
+"use strict";
+var t = new Date();
+var checkdate = false;
+var DHS = {
+	init: function() {
+		var that = this;
+		that.initViews();
+		that.initWishList();
+		that.scriptFullpage();
+	},
+	/* Init Views */
+	initViews: function() {
+		var view = shop.template, that = this;
+		switch(view) {
+			case 'index':
+				that.scriptIndex();
+				that.loadQuickview();
+				break;
+			case 'collection':
+			case 'collection.tuoi-song-moi-ngay-new':
+			case 'collection.sashimi-sushi':
+				that.loadQuickview();
+				break;
+			case 'search':
+				that.loadQuickview();
+				break;
+			case 'product':
+				that.scriptProduct();
+				that.loadQuickview();
+				break;
+			case 'blog':
+				break;
+			case 'page.contact':
+				break;
+			case 'page':
+				break;
+			case 'customers[order]':
+				break;
+			case 'page.landing-page':
+			case 'page.landing-page-2':
+			case 'page.landing-page-3':
+			case 'page.landing-page-4':
+				that.scriptLdp();
+				that.loadQuickview();
+				break;
+			case 'page.ldp-seafood':
+				that.scriptLdpSeafood();
+				that.loadQuickview();
+				break;
+			case 'page.ldp-seafood2':
+				that.scriptLdpSeafood2();
+				that.loadQuickview();
+				break;
+			case 'page.ldp-sushi-sashimi':
+				that.scriptLdpSushi();
+				that.loadQuickview();
+				break;
+			case 'page.ldp-trung-thu':
+				that.scriptLdpTrungThu();
+				break;
+			case 'page.takeaway':
+				that.scriptowl();
+				break;
+			case 'cart':
+				that.initScriptCart();
+				break;
+			default:
+		}
+	},
+	/* Fixheight */
+	fixHeightProduct: function(data_parent, data_target, data_image) {
+		var box_height = 0;
+		var box_image = 0;
+		var boxtarget = data_parent + ' ' + data_target;
+		var boximg = data_parent + ' ' + data_target + ' ' + data_image;
+		jQuery(boximg).css('height', 'auto');
+		jQuery($(boxtarget)).css('height', 'auto');
+		jQuery($(boxtarget)).removeClass('fixheight');
+		jQuery($(boxtarget)).each(function() {
+			if (jQuery(this).find(data_image + ' .lazyloaded').height() > box_image) {
+				box_image = jQuery(this).find($(data_image)).height();
+			}
+		});
+		if (box_image > 0) {
+			jQuery(boximg).height(box_image);
+		}
+		jQuery($(boxtarget)).each(function() {
+			if (jQuery(this).height() > box_height) {
+				box_height = jQuery(this).height();
+			}
+		});
+		jQuery($(boxtarget)).addClass('fixheight');
+		if (box_height > 0) {
+			jQuery($(boxtarget)).height(box_height);
+		}
+		try {
+			fixheightcallback();
+		} catch (ex) {}
+	},
+	/* Script Fullpage */
+	scriptFullpage: function(){
+		var that = this;
+		$(document).on('lazyloaded', function(e){	//lazybeforeunveil 
+			that.fixHeightProduct('.item__grid', '.product-resize', '.image-resize');
+			if(jQuery(window).width() > 991){		
+				jQuery(window).resize(function() {
+					that.fixHeightProduct('.item__grid', '.product-resize', '.image-resize');
+				});
+			}
+		});
+		if((!that.readCookie('popupEvent'))) {
+			that.createCookie('popupEvent', true, 24);
+			setTimeout(function(){
+				$("#popupEvent").modal('show');
+			}, 1000);
+		}
+		var swiper = new Swiper('.footer__brand--slider.swiper-container', {
+			slidesPerView: 4,
+			lazy: true,
+			spaceBetween: 105,
+			breakpoints: {
+				0: {
+					spaceBetween: 30,
+					slidesPerView: 'auto'
+				},
+				768: {
+					slidesPerView: 4,
+					spaceBetween: 30
+				},
+				1024: {
+					slidesPerView: 4,
+					spaceBetween: 105,
+				},
+			}
+		});
+		$('.product__item--addcart').click(function(e){
+			e.preventDefault();
+			debugger;
+			var that = $(this);
+			var variant_id = $(this).attr('data-id');
+			var pro_id = $(this).attr('data-proid');
+			var max = parseInt($(this).data('max')) || 0;
+			var hasVariant = false;
+								var preorder = '';
+			if(max != 0){
+				Haravan.getCart(function(data){
+					var total_price = data.total_price/100;
+
+					if(total_price >= 700000 && pro_id == 1029306925){
+						$.each(data.items,function(i,v){
+							if(v.variant_id == variant_id){
+								hasVariant = true;
+								var qtyCart = v.quantity;
+								var sum = qtyCart + 1;
+								if(sum > max){
+									alert('Vẹm xanh 29K/kg chỉ áp dụng tối đa 1kg/đơn hàng');
+								}else{
+									if(that.hasClass('preorder')){
+										preorder = '&properties[preorder]=preorder';
+									}else{preorder = '';}
+									jQuery.ajax({
+											type: 'POST',
+											url: '/cart/add.js',
+											data: 'quantity=1&id=' + variant_id +preorder,
+											dataType: 'json',
+											success: function(data) { 
+												var image = '';
+												if(data['image'] == null){
+													image = 'https://hstatic.net/0/0/global/noDefaultImage6.gif';
+												}
+												else{
+													image = Haravan.resizeImage(data['image'], 'small');
+												}
+												var $info = '<div class="row"><div class="col-xs-12"><p class="jGowl-text">Đã thêm vào giỏ hàng thành công!</p></div><div class="col-sm-4 col-xs-4"><a href="'+ data['url'] +'"><img width="70px" src="'+ image +'" alt="'+ data['title'] +'"/></a></div><div class="col-sm-8 col-xs-8"><div class="jGrowl-note"><a class="jGrowl-title" href="'+ data['url'] +'">'+ data['title']+ ' - ' +data['variant_options'][0]+'</a><ins>'+ Haravan.formatMoney(data['price'], "") + '' + ' đ' +'</ins></div></div></div>';
+												DHS.notifyProduct($info);
+												DHS.getCartAjax();
+											},
+											error: function(XMLHttpRequest, textStatus) {
+												Haravan.onError(XMLHttpRequest, textStatus);
+											}
+										});
+								}
+							}
+						});
+						if(hasVariant == false && 1 <= max){
+							if(that.hasClass('preorder')){
+										preorder = '&properties[preorder]=preorder';
+									}else{preorder = '';}
+									jQuery.ajax({
+											type: 'POST',
+											url: '/cart/add.js',
+											data: 'quantity=1&id=' + variant_id+preorder,
+											dataType: 'json',
+											success: function(data) { 
+												var image = '';
+												if(data['image'] == null){
+													image = 'https://hstatic.net/0/0/global/noDefaultImage6.gif';
+												}
+												else{
+													image = Haravan.resizeImage(data['image'], 'small');
+												}
+												var $info = '<div class="row"><div class="col-xs-12"><p class="jGowl-text">Đã thêm vào giỏ hàng thành công!</p></div><div class="col-sm-4 col-xs-4"><a href="'+ data['url'] +'"><img width="70px" src="'+ image +'" alt="'+ data['title'] +'"/></a></div><div class="col-sm-8 col-xs-8"><div class="jGrowl-note"><a class="jGrowl-title" href="'+ data['url'] +'">'+ data['title']+ ' - ' +data['variant_options'][0]+'</a><ins>'+ Haravan.formatMoney(data['price'], "") + '' + ' đ' +'</ins></div></div></div>';
+												DHS.notifyProduct($info);
+												DHS.getCartAjax();
+											},
+											error: function(XMLHttpRequest, textStatus) {
+												Haravan.onError(XMLHttpRequest, textStatus);
+											}
+										});
+						}
+					}
+					else if(total_price < 700000 && pro_id == 1029306925){
+						alert('Vẹm xanh 29K/kg chỉ áp dụng đơn hàng từ 700K');
+					}else{
+						$.each(data.items,function(i,v){
+							if(v.variant_id == variant_id){
+								hasVariant = true;
+								var qtyCart = v.quantity;
+								var sum = qtyCart + 1;
+								if(sum > max){
+									alert('Sản phẩm chỉ được mua tối đa '+max+' sản phẩm');
+								}else{
+									if(that.hasClass('preorder')){
+										preorder = '&properties[preorder]=preorder';
+									}else{preorder = '';}
+									jQuery.ajax({
+											type: 'POST',
+											url: '/cart/add.js',
+											data: 'quantity=1&id=' + variant_id+preorder,
+											dataType: 'json',
+											success: function(data) { 
+												var image = '';
+												if(data['image'] == null){
+													image = 'https://hstatic.net/0/0/global/noDefaultImage6.gif';
+												}
+												else{
+													image = Haravan.resizeImage(data['image'], 'small');
+												}
+												var $info = '<div class="row"><div class="col-xs-12"><p class="jGowl-text">Đã thêm vào giỏ hàng thành công!</p></div><div class="col-sm-4 col-xs-4"><a href="'+ data['url'] +'"><img width="70px" src="'+ image +'" alt="'+ data['title'] +'"/></a></div><div class="col-sm-8 col-xs-8"><div class="jGrowl-note"><a class="jGrowl-title" href="'+ data['url'] +'">'+ data['title']+ ' - ' +data['variant_options'][0]+'</a><ins>'+ Haravan.formatMoney(data['price'], "") + '' + ' đ' +'</ins></div></div></div>';
+												DHS.notifyProduct($info);
+												DHS.getCartAjax();
+											},
+											error: function(XMLHttpRequest, textStatus) {
+												Haravan.onError(XMLHttpRequest, textStatus);
+											}
+										});
+								}
+							}
+						});
+						if(hasVariant == false && 1 <= max){
+							if(that.hasClass('preorder')){
+										preorder = '&properties[preorder]=preorder';
+									}else{preorder = '';}
+									jQuery.ajax({
+											type: 'POST',
+											url: '/cart/add.js',
+											data: 'quantity=1&id=' + variant_id+preorder,
+											dataType: 'json',
+											success: function(data) { 
+												var image = '';
+												if(data['image'] == null){
+													image = 'https://hstatic.net/0/0/global/noDefaultImage6.gif';
+												}
+												else{
+													image = Haravan.resizeImage(data['image'], 'small');
+												}
+												var $info = '<div class="row"><div class="col-xs-12"><p class="jGowl-text">Đã thêm vào giỏ hàng thành công!</p></div><div class="col-sm-4 col-xs-4"><a href="'+ data['url'] +'"><img width="70px" src="'+ image +'" alt="'+ data['title'] +'"/></a></div><div class="col-sm-8 col-xs-8"><div class="jGrowl-note"><a class="jGrowl-title" href="'+ data['url'] +'">'+ data['title']+ ' - ' +data['variant_options'][0]+'</a><ins>'+ Haravan.formatMoney(data['price'], "") + '' + ' đ' +'</ins></div></div></div>';
+												DHS.notifyProduct($info);
+												DHS.getCartAjax();
+											},
+											error: function(XMLHttpRequest, textStatus) {
+												Haravan.onError(XMLHttpRequest, textStatus);
+											}
+										});
+						}
+					}
+				})
+			}
+			else{
+				if(that.hasClass('preorder')){
+										preorder = '&properties[preorder]=preorder';
+									}else{preorder = '';}
+									jQuery.ajax({
+											type: 'POST',
+											url: '/cart/add.js',
+											data: 'quantity=1&id=' + variant_id+preorder,
+											dataType: 'json',
+											success: function(data) { 
+												var image = '';
+												if(data['image'] == null){
+													image = 'https://hstatic.net/0/0/global/noDefaultImage6.gif';
+												}
+												else{
+													image = Haravan.resizeImage(data['image'], 'small');
+												}
+												var $info = '<div class="row"><div class="col-xs-12"><p class="jGowl-text">Đã thêm vào giỏ hàng thành công!</p></div><div class="col-sm-4 col-xs-4"><a href="'+ data['url'] +'"><img width="70px" src="'+ image +'" alt="'+ data['title'] +'"/></a></div><div class="col-sm-8 col-xs-8"><div class="jGrowl-note"><a class="jGrowl-title" href="'+ data['url'] +'">'+ data['title']+ ' - ' +data['variant_options'][0]+'</a><ins>'+ Haravan.formatMoney(data['price'], "") + '' + ' đ' +'</ins></div></div></div>';
+												DHS.notifyProduct($info);
+												DHS.getCartAjax();
+											},
+											error: function(XMLHttpRequest, textStatus) {
+												Haravan.onError(XMLHttpRequest, textStatus);
+											}
+										});
+			}
+		});
+		/*Menu mobile*/
+		$("#trigger_click_mobile,.category-list-menu").click(function(e){
+			e.preventDefault();
+			$("#mobile_wrap_menu").toggleClass("show");
+			$('#opacity').addClass("opacity_body");
+			$('body').addClass("overflow_hidden");
+		});
+		$('#opacity, .close_menu').click(function(){
+			$("#mobile_wrap_menu").removeClass("show");
+			$('#opacity').removeClass("opacity_body");
+			$('body').removeClass("overflow_hidden");
+		});
+		$(".more").on("click", function() {
+			if($(this).hasClass('collapsed')){
+				$("svg", this).attr("data-icon", "minus");
+			}else{
+				$("svg", this).attr("data-icon", "plus");
+			}
+		});
+$('.productUrl').click(function(e){
+	e.preventDefault();
+	var url = $(this).attr('href');
+	var colhandle = $(this).attr('data-coll-handle');
+	that.createCookie('collection-handle', colhandle, 24);
+	window.location = url;
+})
+	},
+	/* Script Index */
+	scriptIndex: function(){
+		$("#owlSlider").owlCarousel({
+			nav: true,
+			dots: true,
+			margin: 10,
+			lazyLoad: true,
+			loop: true,
+			autoplay: true,
+			autoplayTimeout: 5000,
+			items: 1,
+			nav: ['<i class="fas fa-angle-left"></i>', '<i class="fas fa-angle-right"></i>'],
+			responsive:{
+				0:{nav: false},
+				992:{nav: true},
+			}
+		});
+		if($(window).width()<992){
+			$('.owl-carousel-slider-mb').owlCarousel({
+				nav: false,
+				dots: true,
+				loop: false,
+				lazyLoad: true,
+				autoplay: false,
+				autoplayTimeout: 3000,
+				items: 1
+			});
+		}
+
+
+	},
+	/* Script Product */
+	scriptProduct: function(){
+		var that = this;
+		$(".thumb").owlCarousel({
+			nav: true, // Show next and prev buttons
+			dots: false,
+			animateOut: 'fadeOut',
+			animateIn: 'fadeIn',
+			margin: 10,
+			lazyLoad: true,
+			nav: ['<i class="fas fa-angle-left"></i>', '<i class="fas fa-angle-right"></i>'],
+			responsive : {
+				0:{items: 4},
+				579:{items: 5},
+				768:{items: 6},
+				979:{items: 6},
+				1200:{items: 6}
+			}
+		});
+var colhandle = $('.promotion_text').attr('data-exclu');
+		if(colhandle != undefined){
+		console.log(that.readCookie('collection-handle'));
+		if(colhandle.indexOf(that.readCookie('collection-handle')) == -1 ) {
+			$('.promotion_text').removeClass('d-none');
+		}
+		}
+	},
+	/* Script Blog */
+	scriptBlog: function(){
+
+	},
+	/* Script Cart */
+	initScriptCart: function(){
+		var that = this;
+		that.getTimeDate();
+		$(".cart-qty .btn_minus").on('click',function(e) {
+			e.preventDefault();
+			var input = $(this).parents('.item__quantity').find('input');
+			var currentVal = parseInt(input.val());
+			if (!isNaN(currentVal) && currentVal > 1) {
+				input.val(currentVal - 1);
+			} else {
+				input.val(1);
+			}
+		});
+		$('.cart-qty .btn_plus').on('click',function(e){
+			e.preventDefault();
+			var input = $(this).parent('.cart-qty').find('input');
+			var max = $(this).parent('.cart-qty').find('input').attr('data-max');
+			var currentVal = parseInt(input.val());
+			if (!isNaN(currentVal)) {
+				currentVal += 1;
+				if(max != undefined){
+					if(currentVal > max){
+						alert('Sản phẩm chỉ được phép mua tối đa '+max);
+						input.val(max);
+					}else{
+						input.val(currentVal);
+					}
+				}else{
+					input.val(currentVal);
+				}
+			}
+		});
+		$('.cart-qty .qty').on('change',function(){
+			var max = parseInt($(this).attr('data-max'));
+			var currentVal = parseInt($(this).val());
+			if (!isNaN(currentVal)) {
+				if(max != undefined){
+					if(currentVal > max){
+						alert('Sản phẩm chỉ được phép mua tối đa '+max);
+						$(this).val(max);
+					}else{
+						$(this).val(currentVal);
+					}
+				}else{
+					$(this).val(currentVal);
+				}
+			}
+		});
+		$('.cart-qty .quantity').on('change', that.throttle(function() {
+			that.UpdateCartFromCart();
+		}, 800));
+		$(document).on('click', '.cart-qty .btn_quantity', that.throttle(function() {
+			that.UpdateCartFromCart();
+		}, 800));
+		$(document).on('keyup', '#note', that.throttle(function() {
+			var note = $(this).val();
+			$.ajax({
+				type: "POST",
+				url: '/cart/update.js',
+				data: {"note": note},
+				dataType: 'json',
+				success: function() {}
+			});
+		}, 500));
+		$('#modal-checkout-button').on('click',function(e){
+			debugger;
+			e.preventDefault();
+			var order_day = $('#data_order').val();
+			var order_time = $('#time_order').val();
+			var updateAttr = {'Ngày giao hàng': order_day,'Giờ giao hàng':order_time};
+			if(checkdate == true){
+				$('#modal-checkout-button').attr('disabled','disabled');
+			}
+			else{
+				var min_price = that.slug(String($('.cart__total--price').html()));
+				if(min_price <= 199000){
+					//$('#warning_order').modal('show');
+					$('.alert-warning').show();
+				}else{
+					$('.alert-warning').hide();
+					var note = $(this).val();
+					var dataPreorder = $(this).attr('data-preorder');
+					if(dataPreorder == 'preorder'){
+						note = note + ' pre-order';
+						$.ajax({
+				type: "POST",
+				url: '/cart/update.js',
+				data: {"note": note},
+														async: false,
+				dataType: 'json',
+				success: function() {}
+			});
+					}
+					Haravan.updateCartAttributes(updateAttr, function(){
+						window.location = '/checkout';
+					});
+				}
+			}
+		});
+	},
+	/* Quickview */
+	loadQuickview: function(){
+		var that = this;
+		jQuery(document).on("click", ".product__item--quickview", function(event){
+			var purl = $(this).attr('data-handle');
+			$.ajax({
+				url: purl + '?view=quickview',
+				async: false,
+				success: function (product) {
+					$('#quick-view-modal .jsQuickview').html(product);
+					$('#quick-view-modal').modal('show');
+					setTimeout(function(){
+						var owl = $('.quickview-slider-owl-xs');
+						owl.owlCarousel({
+							items:5,
+							dots: false,
+							autoplay: true,
+							autoplayTimeout: 4000,
+							nav: false,
+							responsive:{
+								0:{
+									items: 1,
+								},
+								768:{
+									items: 3,
+								},
+								900:{
+									items: 3,
+								},
+								1000:{
+									items: 5,
+								}
+							}
+						});
+						$('.quickview-slider-owl-xs .owl-carousel .owl-item').first().children('.product-thumb-quickview').addClass('active');
+					},600);
+
+					$('.single-option-selector .variant-option-item:nth-child(1)').find('input').prop('checked', true);
+					$('.wrapper-quickview').on('click', '.product-thumb-quickview a', function () {
+						var item = $('.wrapper-quickview');
+						item.find('.quickview-image img').attr('src', $(this).attr('data-image'));
+						item.find('.product-thumb-quickview').removeClass('active');
+						$(this).parents('li').addClass('active');
+						return false;
+					});
+					$('.quickview-close, .close-popup').on('click', function(e){
+						$('#quick-view-modal').modal('hide');
+					});
+				}
+			});
+		});
+	},
+	/* Notify Add Cart */
+	notifyProduct:	function ($info){
+		var wait = setTimeout(function(){
+			$.jGrowl($info,{
+				life: 2000
+			});	
+		});
+	},
+	/* Get Cart Ajax */
+	getCartAjax: function(){
+		var cart = null;
+		jQuery('.cart__box').html('');
+		jQuery.getJSON('/cart.js', function(cart, txtStatus){
+			if(cart.item_count != 0){
+				jQuery('.cart__box').append('<div class="cart__box--top"></div>');
+				jQuery.each(cart.items,function(i,item){
+					var div = $('.original').clone().removeClass('original').appendTo('.cart__box--top');
+					if(item.image != null)
+						div.find('.cart__item--image').html("<img src=" + Haravan.resizeImage(item.image,'small') + " alt="+item.product_title+">");
+					else
+						div.find('.cart__item--image').html("<img src='//hstatic.net/0/0/global/noDefaultImage6_large.gif'>");
+					var vt = item.variant_options;
+					if(vt.indexOf('Default Title') != -1)
+						vt = '';
+					div.find('.cart__item--info .cart__item--title').html('<a href="'+item.url+'">'+item.product_title + '<span class="variant_title"> - ' + vt + '</span></a>');
+					div.find('.cart__item--qty').html("x"+item.quantity);
+					if ( typeof(formatMoney) != 'undefined' ){
+						div.find('.cart__item--price').html(Haravan.formatMoney(item.price, shop.moneyFormat));
+					}else {
+						div.find('.cart__item--price').html(Haravan.formatMoney(item.price, shop.moneyFormat));
+					}
+					div.find('.cart__item--remove').html("<a href='javascript:void(0);' onclick='DHS.deletecart(" + item.variant_id + ")' ><i class='fa fa-trash'></i></a>");
+				});
+				jQuery('.cart__box').append('<div class="cart__box--bottom"><div class="total_cart"><span>Tổng tiền: </span><span class="total_price">'+Haravan.formatMoney(cart.total_price,shop.moneyFormat)+'</span></div><a href="/cart" class="btn-minicart">Xem giỏ hàng</a></div>');
+				jQuery('.cart__count').html(cart.item_count);
+			}
+			else{
+				jQuery('.cart__count').html(cart.item_count);
+				jQuery('.cart__box').html('<div class="cart__empty">Giỏ hàng của bạn vẫn chưa có sản phẩm nào.</div>');
+			}
+		});
+	},
+	/* Delete Cart */
+	deletecart: function(variant_id){
+		var that = this;
+		Haravan.removeItem(variant_id,function(){
+			that.getCartAjax();
+		});
+	},
+	/* Change Store */
+	show_store: function (iframe,address,phone){
+		$('.list_address').html(iframe);
+	},
+	/* Create Cookie */
+	createCookie: function (name,value,hours) {
+		if (hours) {
+			var date = new Date();
+			date.setTime(date.getTime()+(hours*60*60*1000));
+			var expires = "; expires="+date.toGMTString();
+		}
+		else var expires = "";
+		document.cookie = name+"="+value+expires+"; path=/";
+	},
+	/* Read Cookie */
+	readCookie:	function (name) {
+		var nameEQ = name + "=";
+		var ca = document.cookie.split(';');
+		for(var i=0;i < ca.length;i++) {
+			var c = ca[i];
+			while (c.charAt(0)==' ') c = c.substring(1,c.length);
+			if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length,c.length);
+		}
+		return null;
+	},
+	/* Lấy danh sách thời gian đặt hàng */
+	getTimeDate: function (){
+		var that = this;
+		var fulldate = that.getcurrenttime(t);
+		that.setcurrenttime(t);
+		jQuery('#data_order').val(fulldate).datepicker({
+			changeMonth: true,
+			numberOfMonths: 1,
+			dateFormat: "dd/mm/yy",
+			minDate: t,
+			onSelect: function(selectedDate) {
+				var seldate = $(this).datepicker('getDate');
+				seldate = seldate.toDateString();
+				seldate = seldate.split(' ');
+				var weekday = seldate[0];
+				if(fulldate == selectedDate){
+					that.setcurrenttime(t);
+				}else{
+					checkdate = false;
+					$('#modal-checkout-button').removeAttr('disabled');
+					$('.note_timeout').hide();
+					var hours, minutes,html = '';
+					html += '<option selected value="Càng sớm càng tốt">Càng sớm càng tốt</option>';
+					if(weekday == 'Sun'){
+						for (var i = 600; i<= 1020; i+= 30){
+							hours = Math.floor(i / 60);
+							minutes = i % 60;
+							if(minutes < 10){
+								minutes = "0" + minutes;
+							}
+							if(hours < 10){
+								hours = "0" + hours;
+							}
+							html += '<option value=' + hours + ':' + minutes + '>'+ hours + ':' + minutes +'</option>';
+						}
+					}
+					else{
+						for (var i = 600; i<= 1260; i+= 30){
+							hours = Math.floor(i / 60);
+							minutes = i % 60;
+
+							if(minutes < 10){
+								minutes = "0" + minutes;
+							}
+							if(hours < 10){
+								hours = "0" + hours;
+							}
+							html += '<option value=' + hours + ':' + minutes + '>'+ hours + ':' + minutes +'</option>';
+						}
+					}
+					jQuery('#time_order').html(html);
+				}
+			}
+		});
+	},
+	/* Lấy thời gian hiện tại */
+	getcurrenttime: function(today){
+		var string_date = '';
+		var day = today.getDate();
+		var fullyear = today.getFullYear();
+		var month = today.getMonth() + 1;
+		month < 10 ? month = "0" + month : month;
+		day < 10 ? day = "0" + day : day;
+		var string_date = day + "/" + month + "/" + fullyear;
+		return string_date;
+	},
+	/* Thiết lập đặt hàng với thời gian hiện tại */
+	setcurrenttime: function(today){
+		var hours_today = today.getHours();
+		var minus_today = today.getMinutes();
+		var weekday = today.getDay();
+		console.log(weekday);
+		var hours, minutes,html='',check_condition = '';
+		if(weekday == 0){
+			if((hours_today == 18) || hours_today > 18){
+				checkdate = true;
+				$('.note_timeout').html('Bạn vui lòng chọn thời gian nhận hàng vào ngày hôm sau');
+				$('.note_timeout').show();
+				$('#modal-checkout-button').attr('disabled','disabled');
+				html += '<option selected value="Càng sớm càng tốt">Càng sớm càng tốt</option>';
+				for (var i = 600; i<= 1260; i+= 30){
+					hours = Math.floor(i / 60);
+					minutes = i % 60;
+					if(minutes < 10){
+						minutes = "0" + minutes;
+					}
+					if(hours < 10){
+						hours = "0" + hours;
+					}
+					html += '<option value=' + hours + ':' + minutes + '>'+ hours + ':' + minutes +'</option>';
+				}
+			}
+			else{
+				checkdate = false;
+				var j = 0;
+				if(hours_today < 8){
+					j = 600;
+				}else if(minus_today <= 30){
+					j = (hours_today + 2) * 60 + 30;
+				}else if(minus_today > 30 && minus_today < 59){
+					j = ((hours_today + 2) * 60) + 60;
+				}else if(hours_today == '21'){
+					j = hours_today;
+				}
+				$('.note_timeout').html('');
+				html += '<option selected value="Càng sớm càng tốt">Càng sớm càng tốt</option>';
+				for (j; j<= 1260; j+= 30){
+					hours = Math.floor(j / 60);
+					minutes = j % 60;
+
+					if(minutes < 10){
+						minutes = "0" + minutes;
+					}
+					if(hours < 10){
+						hours = "0" + hours;
+					}
+					html += '<option value=' + hours + ':' + minutes + '>'+ hours + ':' + minutes +'</option>';
+				}
+			}
+		}
+		else{
+			if((hours_today == 19 && minus_today > 30) || hours_today > 19){
+				checkdate = true;
+				$('.note_timeout').html('Bạn vui lòng chọn thời gian nhận hàng vào ngày hôm sau');
+				$('#modal-checkout-button').attr('disabled','disabled');
+				html += '<option selected value="Càng sớm càng tốt">Càng sớm càng tốt</option>';
+				for (var i = 600; i<= 1260; i+= 30){
+					hours = Math.floor(i / 60);
+					minutes = i % 60;
+					if(minutes < 10){
+						minutes = "0" + minutes;
+					}
+					if(hours < 10){
+						hours = "0" + hours;
+					}
+					html += '<option value=' + hours + ':' + minutes + '>'+ hours + ':' + minutes +'</option>';
+				}
+			}
+			else{
+				checkdate = false;
+				var j = 0;
+				if(hours_today < 8){
+					j = 600;
+				}else if(minus_today <= 30){
+					j = (hours_today + 2) * 60 + 30;
+				}else if(minus_today > 30 && minus_today < 59){
+					j = ((hours_today + 2) * 60) + 60;
+				}else if(hours_today == '21'){
+					j = hours_today;
+				}
+				$('.note_timeout').html('');
+				html += '<option selected value="Càng sớm càng tốt">Càng sớm càng tốt</option>';
+				for (j; j<= 1260; j+= 30){
+					hours = Math.floor(j / 60);
+					minutes = j % 60;
+
+					if(minutes < 10){
+						minutes = "0" + minutes;
+					}
+					if(hours < 10){
+						hours = "0" + hours;
+					}
+					html += '<option value=' + hours + ':' + minutes + '>'+ hours + ':' + minutes +'</option>';
+				}
+			}
+		}
+		jQuery('#time_order').html(html);
+	},
+	/* Loading update cart */
+	UpdateCartFromCart: function () {
+		$('body').append('<div class="dhs__loading">Loading</div>');
+		var self = this;
+		var listCart = document.querySelectorAll('[id^="updates_"]');
+		var tmp = [];
+		var listVariantIdHasPromotion = [];
+		var listPromotionIdExisted = [];
+		for (var i = 0; i < listCart.length; i++) {
+			var price = $(listCart[i]).attr('item-price');
+			var qty = listCart[i].value,hasXY = $(listCart[i]).attr('data-properties');
+			var variant_id = $(listCart[i]).attr('id').replace('updates_', '');
+			var line_index = parseInt($(listCart[i]).attr('data-line-num'));
+
+			if(hasXY == undefined || price == 0){
+				tmp[line_index - 1] = "updates[]=" + qty;
+			}
+		}
+		tmp = tmp.join('&');
+
+		$.post('/cart', tmp).always(function() {
+			for (var i = 0; i < listVariantIdHasPromotion.length; i++) {
+				if (listVariantIdHasPromotion[i].promotion_variant_id &&
+						listPromotionIdExisted.indexOf(listVariantIdHasPromotion[i].promotion_variant_id) < 0) {
+					if(listVariantIdHasPromotion[i].type != "3"){
+						jQuery.ajax({
+							type: 'POST',
+							url: '/cart/change.js',
+							data: 'quantity=0&id=' + listVariantIdHasPromotion[i].promotion_variant_id,
+							async: false,
+							dataType: 'json',
+							success: function(cart) {
+								self.AddCartItemPromotion(listVariantIdHasPromotion[i].promotion_variant_id, Math.round((listVariantIdHasPromotion[i].quantity*listVariantIdHasPromotion[i].count_gift)/listVariantIdHasPromotion[i].count_buy));
+							},
+							error: function(XMLHttpRequest, textStatus) {
+
+							}
+						});
+					}
+					else{
+						self.AddCartItemPromotion(listVariantIdHasPromotion[i].promotion_variant_id, Math.round((listVariantIdHasPromotion[i].quantity*listVariantIdHasPromotion[i].count_gift)/listVariantIdHasPromotion[i].count_buy));
+					}
+					listPromotionIdExisted.push(listVariantIdHasPromotion[i].promotion_variant_id);
+				}
+			}
+			setTimeout(function() {
+				location.reload();
+			}, 500);
+		});
+
+	},
+	/* Timeout Function */
+	throttle: function (func, wait) {
+		return function() {
+			var that = this,
+					args = [].slice(arguments);
+			clearTimeout(func._throttleTimeout);
+			func._throttleTimeout = setTimeout(function() {
+				func.apply(that, args);
+			}, wait);
+		};
+	},
+	slug: function(str) {
+		str = str.toLowerCase();
+		str = str.replace(/à|á|ạ|ả|ã|â|ầ|ấ|ậ|ẩ|ẫ|ă|ằ|ắ|ặ|ẳ|ẵ/g, "");
+		str = str.replace(/è|é|ẹ|ẻ|ẽ|ê|ề|ế|ệ|ể|ễ/g, "");
+		str = str.replace(/ì|í|ị|ỉ|ĩ/g, "");
+		str = str.replace(/ò|ó|ọ|ỏ|õ|ô|ồ|ố|ộ|ổ|ỗ|ơ|ờ|ớ|ợ|ở|ỡ/g, "");
+		str = str.replace(/ù|ú|ụ|ủ|ũ|ư|ừ|ứ|ự|ử|ữ/g, "");
+		str = str.replace(/ỳ|ý|ỵ|ỷ|ỹ/g, "");
+		str = str.replace(/đ|₫/g, "");
+		str = str.replace(/!|@|%|\^|\*|\(|\)|\+|\=|\<|\>|\?|\/|,|\.|\:|\;|\'| |\"|\&|\#|\[|\]|~|$|_/g, "");
+		str = str.replace(/-+-/g, ""); //thay thế 2- thành 1- 
+		str = str.replace(/^\-+|\-+$/g, "");
+		return str;
+	},
+	scriptLdp: function(){
+		$('.feedback').owlCarousel({
+			items: 3,
+			lazyLoad: true,
+			margin: 30,
+			autoplay: true,
+			autoplayTimeout: 3000,
+			dots: false,
+			nav: true,
+			navText : ["<span class='fas fa-angle-left'></span>", "<span class='fas fa-angle-right'></span>"],
+			responsive: {
+				0 : {
+					items: 1,
+				},
+				// breakpoint from 480 up
+				480 : {
+					items: 1,
+				},
+				// breakpoint from 768 up
+				768 : {
+					items: 2,
+				},
+				// breakpoint from 768 up
+				991 : {
+					items: 2,
+				}
+			}
+		});
+		jQuery(window).scroll(function() {
+			if (jQuery(this).scrollTop() > 200) {
+				jQuery('#back-to-top').fadeIn();
+			} else {
+				jQuery('#back-to-top').fadeOut();
+			}
+		});
+	},
+	scriptLdpSeafood: function(){
+		$('.view-more').click(function(e){
+			e.preventDefault();
+			var thatview = $(this);
+			var total_page=0, cur_page=thatview.parents('.ldp__seafood--product').attr('data-page');
+			var href= $(this).data("href"),text=thatview.html();
+			thatview.html('Đang tải...');
+			setTimeout(function(){
+				$.ajax({
+					url: href+"?view=page",	
+					async: false,
+					success:function(data){
+						total_page = parseInt(data);
+					}
+				})
+				if(cur_page <= total_page){
+					cur_page++;
+					$.ajax({
+						url: href+'?view=loadmore&page='+cur_page,
+						success: function(data){
+							thatview.parents('.ldp__seafood--product').find('.product__grid').append(data);
+							thatview.html(text);
+							thatview.parents('.ldp__seafood--product').attr('data-page',cur_page);
+							if(cur_page==total_page){thatview.hide();}
+						}
+					});
+				}
+				else{
+					thatview.hide();
+				}
+			},500);
+		});
+	},
+	countdow: function(){
+		// Set the date we're counting down to
+		var countDownDate = new Date("13/09/2020 21:00:00").getTime();
+
+		// Update the count down every 1 second
+		var x = setInterval(function() {
+
+			// Get today's date and time
+			var now = new Date().getTime();
+
+			// Find the distance between now and the count down date
+			var distance = countDownDate - now;
+
+			// Time calculations for days, hours, minutes and seconds
+			var days = Math.floor(distance / (1000 * 60 * 60 * 24));
+			var hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+			var minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+			var seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+			// Display the result in the element with id="demo"
+			var nameEls = document.getElementsByClassName("status-countdown");
+			for (var i = 0; i < nameEls.length; i++) {
+				nameEls[i].innerHTML = 'Kết thúc sau: '+days+' ngày ' + hours + ':' + minutes + ':' +  seconds;
+			}
+
+
+			// If the count down is finished, write some text
+			if (distance < 0) {
+				clearInterval(x);
+				var nameEls = document.getElementsByClassName("status-countdown");
+				for (var i = 0; i < nameEls.length; i++) {
+					nameEls[i].style.display = "none";
+				}
+			}
+		}, 1000);
+	},
+	scriptLdpSeafood2: function(){
+		var that=this;
+		that.countdow();
+		$('.view-more').click(function(e){
+			e.preventDefault();
+			var thatview = $(this);
+			var total_page=0, cur_page=thatview.parents('.ldp__seafood--product').attr('data-page');
+			var href= $(this).data("href"),text=thatview.html();
+			thatview.html('Đang tải...');
+			setTimeout(function(){
+				$.ajax({
+					url: href+"?view=page",	
+					async: false,
+					success:function(data){
+						total_page = parseInt(data);
+					}
+				})
+				if(cur_page <= total_page){
+					cur_page++;
+					$.ajax({
+						url: href+'?view=loadmore2&page='+cur_page,
+						success: function(data){
+							thatview.parents('.ldp__seafood--product').find('.product__grid').append(data);
+							thatview.html(text);
+							thatview.parents('.ldp__seafood--product').attr('data-page',cur_page);
+							that.countdow();
+							if(cur_page==total_page){thatview.hide();}
+						}
+					});
+				}
+				else{
+					thatview.hide();
+				}
+			},500);
+		});
+		$('.tab-title').click(function(){
+			var hrf = $(this).data('handle');
+			$('.tab-title').removeClass('active');
+			$(this).addClass('active');
+			$(this).parents('.ldp__seafood--producttab--wrap').find('.view-more').attr('href',hrf);
+			$.ajax({
+				url: hrf+"?view=loadmore",
+				async: false,
+				success:function(data){
+					$('.ldp__seafood--producttab--content .product__grid').html(data);
+					that.countdow();
+				}
+			})
+		})
+	},
+	scriptLdpSushi: function(){
+		$('.ldp__sushi--products__slider').owlCarousel({
+			items: 4,
+			lazyLoad: true,
+			margin: 30,
+			autoplay: true,
+			autoplayTimeout: 3000,
+			dots: false,
+			nav: true,
+			navText : ["<span class='fas fa-angle-left'></span>", "<span class='fas fa-angle-right'></span>"],
+			responsive: {
+				0 : {
+					items: 2,
+					nav: false,
+					dots: true
+				},
+				// breakpoint from 480 up
+				480 : {
+					items: 2,
+					nav: false,
+					dots: true
+				},
+				// breakpoint from 768 up
+				768 : {
+					items: 3,
+					nav: true,
+					dots: false
+				},
+				// breakpoint from 768 up
+				991 : {
+					items: 3,
+					nav: true,
+					dots: false
+				},
+				// breakpoint from 768 up
+				1199 : {
+					items: 4,
+					nav: true,
+					dots: false
+				}
+			}
+		});
+		$('.view-more').click(function(e){
+			e.preventDefault();
+			var thatview = $(this);
+			var total_page=0, cur_page=thatview.parents('.ldp__sushi--products2').attr('data-page');
+			var href= $(this).data("href"),text=thatview.html();
+			thatview.html('Đang tải...');
+			setTimeout(function(){
+				$.ajax({
+					url: href+"?view=page-sushi",	
+					async: false,
+					success:function(data){
+						total_page = parseInt(data);
+					}
+				})
+				if(cur_page <= total_page){
+					cur_page++;
+					$.ajax({
+						url: href+'?view=loadmore-sushi&page='+cur_page,
+						success: function(data){
+							thatview.parents('.ldp__sushi--products2--lists').find('.product__grid').append(data);
+							thatview.html(text);
+							thatview.parents('.ldp__sushi--products2').attr('data-page',cur_page);
+							if(cur_page==total_page){thatview.hide();}
+						}
+					});
+				}
+				else{
+					thatview.hide();
+				}
+			},500);
+		});
+		$('.ldp__sushi--promotion__lists').owlCarousel({
+			items: 3,
+			lazyLoad: true,
+			margin: 10,
+			autoplay: true,
+			autoplayTimeout: 3000,
+			dots: false,
+			nav: true,
+			navText : ["<span class='fas fa-angle-left'></span>", "<span class='fas fa-angle-right'></span>"],
+			responsive: {
+				0 : {
+					items: 2,
+					nav: false,
+					dots: true
+				},
+				// breakpoint from 480 up
+				480 : {
+					items: 2,
+					nav: false,
+					dots: true
+				},
+				// breakpoint from 768 up
+				768 : {
+					items: 2,
+					nav: false,
+					dots: true
+				},
+				// breakpoint from 992 up
+				992 : {
+					items: 3,
+					nav: true,
+					dots: false
+				},
+				// breakpoint from 768 up
+				1199 : {
+					items: 3,
+					nav: true,
+					dots: false
+				}
+			}
+		});
+		$('.tab-title').click(function(){
+			var hrf = $(this).data('handle');
+			$('.tab-title').removeClass('active');
+			$(this).addClass('active');
+			$(this).parents('.ldp__sushi--producttab--wrap').find('.view-more').attr('href',hrf);
+			$.ajax({
+				url: hrf+"?view=loadcollection",	
+				async: false,
+				success:function(data){
+					$('.ldp__sushi--producttab--content .product__grid').html(data);
+				}
+			})
+		})
+	},
+	scriptLdpTrungThu: function(){
+		var that = this;
+		$(".ldp__trungthu--banner").owlCarousel({
+			nav: true,
+			dots: false,
+			margin: 10,
+			lazyLoad: true,
+			loop: true,
+			autoplay: true,
+			autoplayTimeout: 5000,
+			items: 1,
+			navText: ['<i class="fas fa-angle-left"></i>', '<i class="fas fa-angle-right"></i>'],
+			responsive:{
+				0:{nav: false},
+				992:{nav: true},
+			}
+		});
+		$(".ldp__trungthu--prodetail__images").owlCarousel({
+			nav: true,
+			dots: false,
+			margin: 10,
+			lazyLoad: true,
+			loop: true,
+			autoplay: true,
+			autoplayTimeout: 5000,
+			items: 1,
+			navText: ['<i class="fas fa-angle-left"></i>', '<i class="fas fa-angle-right"></i>'],
+			responsive:{
+				0:{nav: false},
+				992:{nav: true},
+			}
+		});
+		$(".ldp__trungthu--meaning__images").owlCarousel({
+			nav: true,
+			dots: false,
+			margin: 10,
+			lazyLoad: true,
+			loop: true,
+			autoplay: true,
+			autoplayTimeout: 5000,
+			items: 1,
+			navText: ['<i class="fas fa-angle-left"></i>', '<i class="fas fa-angle-right"></i>'],
+			responsive:{
+				0:{nav: false},
+				992:{nav: true},
+			}
+		});
+		$(".feedback-slider").owlCarousel({
+			nav: true,
+			dots: false,
+			margin: 10,
+			lazyLoad: true,
+			loop: true,
+			autoplay: true,
+			autoplayTimeout: 5000,
+			items: 1,
+			navText: ['<i class="fas fa-angle-left"></i>', '<i class="fas fa-angle-right"></i>'],
+			responsive:{
+				0:{nav: false,dots: true},
+				992:{nav: true,dots: false}
+			}
+		});
+		if($(window).width() < 992){
+			$('.ldp__trungthu--products__lists').owlCarousel({
+				nav: false,
+				dots: true,
+				lazyLoad: true,
+				loop: true,
+				autoplay: true,
+				autoplayTimeout: 5000,
+				items: 1
+			});
+			$('.ldp__trungthu--camket__wrap').owlCarousel({
+				nav: false,
+				dots: true,
+				lazyLoad: true,
+				loop: true,
+				autoplay: true,
+				autoplayTimeout: 5000,
+				items: 1
+			});
+
+		}
+		$('.ldp__trungthu--chietkhau__title').click(function(){
+			$("#chietkhau").modal()
+		});
+		$('.ldp__trungthu--prodetail__btnaction button').click(function(){
+			var varinant_id = $(this).data('id');
+			Haravan.addItem(varinant_id,1,function(data){
+				window.location = '/cart';
+			})
+		})
+	},
+	scriptowl:function(){
+		$(".promotion_store_owl").owlCarousel({
+			nav: true,
+			dots: true,
+			margin: 10,
+			lazyLoad: true,
+			loop: true,
+			autoplay: true,
+			autoplayTimeout: 5000,
+			items: 3,
+			navText: ['<i class="fas fa-angle-left"></i>', '<i class="fas fa-angle-right"></i>'],
+			responsive:{
+				0:{items: 2,nav: false},
+				768:{items: 3,nav: true},
+				992:{items: 3,nav: true},
+				1200:{items: 3,nav: true}
+			}
+		});
+	},
+		initWishList: function(){
+		var onAppWishList_browser_id = "";
+		var onAppWishList_customer_id = shop.customerId;
+		function onAppWishList_getLocalStogare(nameLocalStorage) {
+			return JSON.parse(localStorage.getItem(nameLocalStorage));
+		}
+		function onAppWishList_setLocalStogare(nameLocalStorage, data) {
+			return localStorage.setItem(nameLocalStorage, JSON.stringify(data));
+		}
+		var onAppWishList_url = "https://onapp.haravan.com/wishlist/frontend";
+		var onAppWishList_name_app = "onApp_wishlist_app";
+		var onAppWishList_shop = Haravan.shop;
+
+		var onAppWishList_first_name = shop_account.firstName;
+		var onAppWishList_last_name =  shop_account.lastName;
+		var onAppWishList_email =  shop_account.email;
+		var onAppWishList_product_id = shop.productId;
+		var onAppWishList_product_title = shop.productTitle;
+		var onAppWishList_product_price = shop.productPrice;
+		var onAppWishList_product_handle = shop.productHandle;
+		var onAppWishList_page = 1;
+
+		var onAppWishList_url_browserid = onAppWishList_url+"/api/browserid";
+		var onAppWishList_url_checkactive = onAppWishList_url+"/api/checkactive";
+		var onAppWishList_url_synccustomer = onAppWishList_url+"/api/synccustomer";
+		var onAppWishList_url_countproduct = onAppWishList_url+"/api/countproduct";
+		var onAppWishList_url_getproduct = onAppWishList_url+"/api/getproduct";
+		var onAppWishList_url_likeproduct = onAppWishList_url+"/api/likeproduct";
+		var onAppWishList_url_unlikeproduct = onAppWishList_url+"/api/unlikeproduct";
+		var onAppWishList_url_getlistproduct = onAppWishList_url+"/api/listproduct";
+		var onAppWishList_url_removeproduct = onAppWishList_url+"/api/unlikeproduct";
+		var onAppWishList_url_removeallproduct = onAppWishList_url+"/api/removealllike";
+
+		var onAppWishList_btn_add_div = document.getElementById('onAppWishList_btn_add');
+		var onAppWishList_btn_remove_div = document.getElementById('onAppWishList_btn_remove');
+		var onAppWishList_numberLike_div = document.getElementById('onAppWishList_numberLike');
+		var onAppWishList_btn_wishlist_div = document.getElementById('onAppWishList_btn_wishlist');
+		var onAppWishList_btn_page_div = document.getElementById('onAppWishList_btn_page');
+		var onAppWishList_page_div = document.getElementById('onAppWishList_page');
+
+		/*if(onAppWishList_btn_add_div)onAppWishList_btn_add_div.style.display = 'none';
+			if(onAppWishList_btn_remove_div)onAppWishList_btn_remove_div.style.display = 'none';*/
+
+		//var onAppWishList_browser_id = "";
+		var onAppWishList_is_sync = "";
+		var onAppWishList_is_active = "";
+		var onAppWishList_expire_unstall = "";
+
+		if(onAppWishList_getLocalStogare(onAppWishList_name_app))onAppWishList_browser_id = onAppWishList_getLocalStogare(onAppWishList_name_app).onAppWishList_browser_id;
+		if(onAppWishList_getLocalStogare('sync_'+onAppWishList_name_app))onAppWishList_is_sync = onAppWishList_getLocalStogare('sync_'+onAppWishList_name_app).onAppWishList_is_sync;
+		if(onAppWishList_getLocalStogare('active_'+onAppWishList_name_app))onAppWishList_is_active = onAppWishList_getLocalStogare('active_'+onAppWishList_name_app).onAppWishList_is_active;
+		if(onAppWishList_getLocalStogare('active_'+onAppWishList_name_app))onAppWishList_expire_unstall = onAppWishList_getLocalStogare('active_'+onAppWishList_name_app).onAppWishList_expire_unstall;
+
+		function onAppWishList_ajaxPost(data, url, callback) {
+			$.ajax({
+				type: 'POST',
+				url: url,
+				data: data,
+				success: function(data_response) {
+					callback(data_response);
+				}
+			})
+		}
+		function onAppWishList_ajaxGet(url, callback) {
+			$.ajax({
+				method: "GET",
+				url: url,
+				dataType: "json",
+				success: function(data_response) {
+					callback(data_response);
+				}
+			});
+		}
+		function onAppWishList_checkBrowser(callback) {
+			if(onAppWishList_browser_id){
+				callback();
+			}else {
+				onAppWishList_ajaxGet(onAppWishList_url_browserid, function (res) {
+					if(res && res.err){
+						console.error(res.message);
+						callback();
+					}else if(res && res.wishlist_browser_id){
+						var data = {
+							onAppWishList_browser_id: res.wishlist_browser_id
+						};
+						var local = onAppWishList_setLocalStogare(onAppWishList_name_app, data);
+						callback(null, local);
+					}else {
+						callback();
+						console.error('CÃ³ lá»—i xáº£y ra');
+					}
+				})
+			}
+		}
+		function onAppWishList_checkSync(callback) {
+			if(onAppWishList_customer_id && onAppWishList_is_sync){
+				callback();
+			}else {
+				var data =  {
+					shop: onAppWishList_shop,
+					customer_id: onAppWishList_customer_id,
+					browser_id: onAppWishList_browser_id,
+					first_name: onAppWishList_first_name,
+					last_name: onAppWishList_last_name,
+					email: onAppWishList_email
+				};
+				onAppWishList_ajaxPost(data, onAppWishList_url_synccustomer, function (res) {
+					if(res && res.err){
+						console.error(res.message);
+						callback(res.err);
+					}else{
+						var local = onAppWishList_setLocalStogare('sync_'+onAppWishList_name_app, {onAppWishList_is_sync: true});
+						callback(null, local);
+					}
+				})
+			}
+		}
+		function onAppWishList_statusActive() {
+			if(onAppWishList_getLocalStogare('active_'+onAppWishList_name_app))onAppWishList_is_active = onAppWishList_getLocalStogare('active_'+onAppWishList_name_app).onAppWishList_is_active;
+			if(onAppWishList_is_active){
+				if(onAppWishList_numberLike_div)onAppWishList_numberLike_div.style.display = 'block';
+				if(onAppWishList_btn_wishlist_div)onAppWishList_btn_wishlist_div.style.display = 'block';
+				if(onAppWishList_page_div)onAppWishList_page_div.style.display = 'block';
+				if(onAppWishList_btn_page_div)onAppWishList_btn_page_div.style.display = 'block';
+			}else {
+				if(onAppWishList_btn_add_div)onAppWishList_btn_add_div.style.display = 'none';
+				if(onAppWishList_btn_remove_div)onAppWishList_btn_remove_div.style.display = 'none';
+				if(onAppWishList_numberLike_div)onAppWishList_numberLike_div.style.display = 'none';
+				if(onAppWishList_btn_wishlist_div)onAppWishList_btn_wishlist_div.style.display = 'none';
+				if(onAppWishList_btn_page_div)onAppWishList_btn_page_div.style.display = 'none';
+				if(onAppWishList_page_div)onAppWishList_page_div.style.display = 'none';
+			}
+		}
+		function onAppWishList_checkActive(callback) {
+			var d = new Date();
+			var data =  {
+				shop: onAppWishList_shop
+			};
+			if(onAppWishList_expire_unstall){
+				if(onAppWishList_is_active){
+					callback();
+				}else {
+					if(onAppWishList_expire_unstall < d.valueOf()){
+						onAppWishList_ajaxPost(data, onAppWishList_url_checkactive, function (res) {
+							if(res && res.err){
+								console.error(res.message);
+								callback(res.err);
+							}else {
+								var local = onAppWishList_setLocalStogare('active_'+onAppWishList_name_app, {onAppWishList_is_active: res.status_app, onAppWishList_expire_unstall: res.expire_unstall})
+								callback(null, local);
+							}
+						});
+					}
+				}
+			}else {
+				onAppWishList_ajaxPost(data, onAppWishList_url_checkactive, function (res) {
+					if(res && res.err){
+						console.error(res.message);
+						callback(res.err);
+					}else{
+						var local = onAppWishList_setLocalStogare('active_'+onAppWishList_name_app, {onAppWishList_is_active: res.status_app, onAppWishList_expire_unstall: res.expire_unstall})
+						callback(null, local);
+					}
+				});
+			}
+		}
+		function checkWish(res){
+			if(res.expire_unstall){
+				var data = {
+					onAppWishList_is_active: res.status_app,
+					onAppWishList_expire_unstall: res.expire_unstall
+				};
+				onAppWishList_setLocalStogare('active_'+onAppWishList_name_app, data);
+				onAppWishList_statusActive();
+			}else {
+				if(res && res.data && res.data._id){
+					document.getElementById("onAppWishList_btn_remove").style.display = "block";
+					document.getElementById("onAppWishList_btn_add").style.display = "none";
+				}else{
+					document.getElementById("onAppWishList_btn_remove").style.display = "none";
+					document.getElementById("onAppWishList_btn_add").style.display = "block";
+				}
+			}
+		}
+		function checkWishCollection(res,element){
+			if(res.expire_unstall){
+				var data = {
+					onAppWishList_is_active: res.status_app,
+					onAppWishList_expire_unstall: res.expire_unstall
+				};
+				onAppWishList_setLocalStogare('active_'+onAppWishList_name_app, data);
+				onAppWishList_statusActive();
+			}else {
+				if(res && res.data && res.data._id){
+					$('.onwishlist_btn_remove[data-id=' + element + ']').show();
+					$('.onwishlist_btn_add[data-id=' + element + ']').hide();
+				}else{
+					$('.onwishlist_btn_remove[data-id=' + element + ']').hide();
+					$('.onwishlist_btn_add[data-id=' + element + ']').show();
+				}
+			}
+		}
+		function onAppWishList_detailProduct(product_id) {
+			var data =  {
+				shop: onAppWishList_shop,
+				customer_id: onAppWishList_customer_id,
+				browser_id: onAppWishList_browser_id,
+				product_id: product_id
+			};
+			onAppWishList_ajaxPost(data, onAppWishList_url_getproduct, function (res) {
+				if(res && res.err){
+					console.error(res.message);
+				}else{
+					checkWish(res);
+				}
+			})
+		}
+		function onAppWishList_countProduct() {
+			var data =  {
+				shop: onAppWishList_shop,
+				customer_id: onAppWishList_customer_id,
+				browser_id: onAppWishList_browser_id
+			};
+			onAppWishList_ajaxPost(data, onAppWishList_url_countproduct, function (res) {
+				if(res && res.err){
+					console.error(res.message);
+					document.getElementById("onAppWishList_numberLike").innerHTML = 0;
+				}else{
+					document.getElementById("onAppWishList_numberLike").innerHTML = res.count;
+				}
+			})
+		}
+		function onAppWishList_like() {
+			var data =  {
+				shop: onAppWishList_shop,
+				customer_id: onAppWishList_customer_id,
+				browser_id: onAppWishList_browser_id,
+				product_id: onAppWishList_product_id,
+				first_name : onAppWishList_first_name,
+				last_name : onAppWishList_last_name,
+				email : onAppWishList_email,
+				product_handle: onAppWishList_product_handle,
+				product_price: onAppWishList_product_price,
+				product_title: onAppWishList_product_title
+			};
+			onAppWishList_ajaxPost(data, onAppWishList_url_likeproduct, function (res) {
+				if(res && res.err){
+					console.error(res.message);
+				}else{
+					checkWish(res);
+					document.getElementById("onAppWishList_numberLike").innerHTML = res.total;
+				}
+			});
+		}
+		function onAppWishList_unlike() {
+			var data =  {
+				shop: onAppWishList_shop,
+				customer_id: onAppWishList_customer_id,
+				browser_id: onAppWishList_browser_id,
+				product_id: onAppWishList_product_id,
+				first_name : onAppWishList_first_name,
+				last_name : onAppWishList_last_name,
+				email : onAppWishList_email,
+				product_handle: onAppWishList_product_handle,
+				product_price: onAppWishList_product_price,
+				product_title: onAppWishList_product_title
+			};
+			onAppWishList_ajaxPost(data, onAppWishList_url_unlikeproduct, function (res) {
+				if(res && res.err){
+					console.error(res.message);
+				}else{
+					checkWish(res);
+					document.getElementById("onAppWishList_numberLike").innerHTML = res.total;
+				}
+			})
+		}
+		function onAppWishList_collection_like(prod_id,prod_handle,prod_price,prod_title,element){
+			var data =  {
+				shop: onAppWishList_shop,
+				customer_id: onAppWishList_customer_id,
+				browser_id: onAppWishList_browser_id,
+				product_id: prod_id,
+				first_name : onAppWishList_first_name,
+				last_name : onAppWishList_last_name,
+				email : onAppWishList_email,
+				product_handle: prod_handle,
+				product_price: prod_price,
+				product_title: prod_title
+			};
+			onAppWishList_ajaxPost(data, onAppWishList_url_likeproduct, function (res) {
+				if(res && res.err){
+					console.error(res.message);
+				}else{
+					checkWishCollection(res,prod_id);
+					document.getElementById("onAppWishList_numberLike").innerHTML = res.total;
+				}
+			})
+		}
+		function onAppWishList_collection_unlike(prod_id,prod_handle,prod_price,prod_title,element) {
+			var data =  {
+				shop: onAppWishList_shop,
+				customer_id: onAppWishList_customer_id,
+				browser_id: onAppWishList_browser_id,
+				product_id: prod_id,
+				first_name : onAppWishList_first_name,
+				last_name : onAppWishList_last_name,
+				email : onAppWishList_email,
+				product_handle: prod_handle,
+				product_price: prod_price,
+				product_title: prod_title
+			};
+			onAppWishList_ajaxPost(data, onAppWishList_url_unlikeproduct, function (res) {
+				if(res && res.err){
+					console.error(res.message);
+				}else{
+					checkWishCollection(res,prod_id);
+					document.getElementById("onAppWishList_numberLike").innerHTML = res.total;
+				}
+			})
+		}
+		function onAppWishList_listProduct(page) {
+			var data= {
+				shop: Haravan.shop,
+				customer_id: onAppWishList_customer_id,
+				browser_id: onAppWishList_browser_id,
+				page: page
+			};
+			onAppWishList_ajaxPost(data, onAppWishList_url_getlistproduct, function (res) {
+				if(res && res.err){
+					console.error(res.message);
+				}else {
+					var wishOld = res.data;
+					if (wishOld && wishOld.length && res.total){
+						onAppWishList_loadHtml(wishOld, 0);
+						$(".wishlist_empty_wrap").hide();
+					}else {
+						$(".wishlist_empty_wrap").html("<div class='text-center wish-empty'>HÃ£y nháº¥n <i class='fa fa-heart-o'></i> sáº£n pháº©m báº¡n yÃªu thÃ­ch khi mua sáº¯m Ä‘á»ƒ xem láº¡i thuáº­n tiá»‡n nháº¥t.</div>").show();
+						$(".table-wishlist").hide();
+					}
+					if(res.total <=9 || wishOld.length <9){
+						document.getElementById("onAppWishList_nextPageWishList").style.display = 'none';
+					}
+				}
+			})
+		}
+		function uniques(arr) {
+			var a = [];
+			for (var i = 0, l = arr.length; i < l; i++)
+				if (a.indexOf(arr[i]) === -1 && arr[i] !== '')
+					a.push(arr[i]);
+			return a;
+		}
+		function getCollectionProductsWishlist(productsId, callback){
+			var browser_id = '';
+			var customer_id = '';
+			var products_id = '';
+			if(onAppWishList_customer_id)customer_id = onAppWishList_customer_id;
+			if(onAppWishList_browser_id)browser_id = onAppWishList_browser_id;
+			if(productsId && productsId.length)products_id = productsId.toString();
+			var url =  "https://onapp.haravan.com/wishlist/frontend/api/wishlist-product?browser_id="+browser_id+"&customer_id="+customer_id+"&product_ids="+products_id;
+			$.ajax({
+				type: 'GET',
+				url: url,
+				success: function(data_response) {
+					callback(data_response);
+				}
+			})
+		}
+		function initCollectionWishList(){
+			var ProductListId = [];
+			$('.product-lists-item').each(function(){
+				ProductListId.push($(this).data('id'));
+			});
+			var ProductListIdUnique = uniques(ProductListId);
+			getCollectionProductsWishlist(ProductListIdUnique,function(response){
+				if(response && response.err){
+					console.error(response.message);
+				}else{
+					$('.product-lists-item').each(function(index, element){
+						var length = response.products.length;
+						var id_product_item = $(this).data('id');
+						var that = $(this);
+						if(length == 0){
+							that.find('.onwishlist_btn_remove').hide();
+							that.find('.onwishlist_btn_add').show();
+						}
+						else{
+							for(var i = 0; i < length; i++){
+								var id_array_wishlist = parseInt(response.products[i]);
+								if(id_product_item == id_array_wishlist){
+									that.find('.onwishlist_btn_remove').show();
+									that.find('.onwishlist_btn_add').hide();
+									break;
+								}else{
+									that.find('.onwishlist_btn_remove').hide();
+									that.find('.onwishlist_btn_add').show();
+								}
+							}
+						}
+					});
+				}
+			});
+		}
+		function onAppWishList_loadHtml(arrWishList, index) {
+			if(index < arrWishList.length){
+				if (shop.local_template == 'en'){
+					var url = '/products/'+arrWishList[index].product_handle+'?view=wishlist.view.en';
+				}else if (shop.local_template == 'cn'){
+					var url = '/products/'+arrWishList[index].product_handle+'?view=wishlist.view.cn';
+				}else{
+					var url = '/products/'+arrWishList[index].product_handle+'?view=wishlist.view';
+				}
+				$.ajax({
+					url: url,
+					async: true,
+					success:function(data){
+						$(".wish-list").append(data);
+						index++;
+						onAppWishList_loadHtml(arrWishList, index);
+					},
+					error: function(XMLHttpRequest, textStatus) {
+						Haravan.onError(XMLHttpRequest, textStatus);
+					}
+				});
+			}else {
+				return;
+			}
+		}
+		function onAppWishList_remove(product_id){
+			var data = {
+				shop: onAppWishList_shop,
+				customer_id: onAppWishList_customer_id,
+				browser_id: onAppWishList_browser_id,
+				product_id: product_id
+			};
+			onAppWishList_ajaxPost(data, onAppWishList_url_removeproduct, function (res) {
+				if(res && res.err){
+					console.error(res.message);
+				}else{
+					$("div [data-id=" + product_id + "]").remove();
+					document.getElementById("onAppWishList_numberLike").innerHTML = res.total;
+					if(res.total <= 9 && res.total > 0){
+						document.getElementById("onAppWishList_nextPageWishList").style.display = 'none';
+						$(".wishlist_empty_wrap").hide();
+						$('.table-wishlist').show();
+					}else if(res.total == 0){
+						$(".wishlist_empty_wrap").html("<div class='text-center wish-empty'>HÃ£y nháº¥n <i class='fa fa-heart-o'></i> sáº£n pháº©m báº¡n yÃªu thÃ­ch khi mua sáº¯m Ä‘á»ƒ xem láº¡i thuáº­n tiá»‡n nháº¥t.</div>").show();
+						$('.table-wishlist').hide();
+					}
+				}
+			})
+		}
+		function onAppWishList_removeAll(){
+			var data = {
+				shop: onAppWishList_shop,
+				customer_id: onAppWishList_customer_id,
+				browser_id: onAppWishList_browser_id
+			};
+			onAppWishList_ajaxPost(data, onAppWishList_url_removeallproduct, function (res) {
+				if(res && res.err){
+					console.error(res.message);
+				}else {
+					document.getElementById("onAppWishList_numberLike").innerHTML = 0;
+					onAppWishList_listProduct(1);
+				}
+			})
+		}
+		$("#onAppWishList_btn_add").click(function(){
+			onAppWishList_like();
+			if(shop.local_template == 'en'){
+				$('#modal_favourite').find('#body-content').html('Item has been added to your wishlist');
+			}else if(shop.local_template == 'cn'){
+				$('#modal_favourite').find('#body-content').html('Item has been added to your wishlist');
+			}else{
+				$('#modal_favourite').find('#body-content').html('Báº¡n vá»«a thÃªm sáº£n pháº©m vÃ o danh sÃ¡ch yÃªu thÃ­ch');
+			}
+			$('#modal_favourite').modal('show');
+			$('.modal-backdrop').css({'height':jQuery(document).height(),'z-index':'999'});
+		});
+		$(".onwishlist_btn_add").click(function(){			
+			var handle_pro = $(this).data('handle');
+			var title_pro = $(this).data('title');
+			var price_pro = $(this).data('price');
+			var id_pro = $(this).data('id');
+			onAppWishList_collection_like(id_pro,handle_pro,price_pro,title_pro,$(this));
+			if(shop.local_template == 'en'){
+				$('#modal_favourite').find('#body-content').html('Item has been added to your wishlist');
+			}else if(shop.local_template == 'cn'){
+				$('#modal_favourite').find('#body-content').html('Item has been added to your wishlist');
+			}else{
+				$('#modal_favourite').find('#body-content').html('Báº¡n vá»«a thÃªm sáº£n pháº©m vÃ o danh sÃ¡ch yÃªu thÃ­ch');
+			}
+			$('#modal_favourite').modal('show');
+			$('.modal-backdrop').css({'height':jQuery(document).height(),'z-index':'999'});
+		});
+		$(".onwishlist_btn_remove").click(function(){
+			var handle_pro = $(this).data('handle');
+			var title_pro = $(this).data('title');
+			var price_pro = $(this).data('price');
+			var id_pro = $(this).data('id');
+			onAppWishList_collection_unlike(id_pro,handle_pro,price_pro,title_pro,$(this));
+			if(shop.local_template == 'en'){
+				$('#modal_favourite').find('#body-content').html('Item has been removed from wishlist');
+			}else if(shop.local_template == 'cn'){
+				$('#modal_favourite').find('#body-content').html('Item has been removed from wishlist');
+			}else{
+				$('#modal_favourite').find('#body-content').html('Báº¡n vá»«a xÃ³a sáº£n pháº©m khá»i danh sÃ¡ch yÃªu thÃ­ch');
+			}
+			$('#modal_favourite').modal('show');
+			$('.modal-backdrop').css({'height':jQuery(document).height(),'z-index':'999'});
+		});
+		$("#onAppWishList_btn_remove").click(function(){
+			onAppWishList_unlike();
+			if(shop.local_template == 'en'){
+				$('#modal_favourite').find('#body-content').html('Item has been removed from wishlist');
+			}else if(shop.local_template == 'cn'){
+				$('#modal_favourite').find('#body-content').html('Item has been removed from wishlist');
+			}else{
+				$('#modal_favourite').find('#body-content').html('Báº¡n vá»«a xÃ³a sáº£n pháº©m khá»i danh sÃ¡ch yÃªu thÃ­ch');
+			}
+			$('#modal_favourite').modal('show');
+			$('.modal-backdrop').css({'height':jQuery(document).height(),'z-index':'999'});
+		});
+		$(document).on("click",'.onAppWishList_remove', function(){
+			var id = $(this).data('id');
+			$('#modal_wishlist_remove').modal('show');
+			$('.modal-backdrop').css({'height':jQuery(document).height(),'z-index':'999'});
+			$('.btn_sucess_remove').attr('title',id);
+			$(document).on("click",'.btn_success_remove', function(){
+				onAppWishList_remove(id);
+				$('#modal_wishlist_remove').modal('hide');
+			});
+		});
+
+		$(document).on('click','#onAppWishList_removeAll',function(){
+			onAppWishList_removeAll();
+		});
+		$('#nextPageWishList').click(function(){
+			onAppWishList_page ++;
+			onAppWishList_listProduct(onAppWishList_page);
+		});
+		function onAppWishList_start() {
+			if(onAppWishList_getLocalStogare('active_'+onAppWishList_name_app))onAppWishList_is_active = onAppWishList_getLocalStogare('active_'+onAppWishList_name_app).onAppWishList_is_active;
+			onAppWishList_statusActive();
+			if(onAppWishList_is_active){
+				if(onAppWishList_btn_add_div && onAppWishList_btn_remove_div){
+					onAppWishList_detailProduct(onAppWishList_product_id);
+				}
+				if(onAppWishList_numberLike_div){
+					onAppWishList_countProduct();
+				}
+				if(onAppWishList_page_div) {
+					onAppWishList_listProduct(1);
+				}
+				initCollectionWishList();
+			}
+		}
+		function onAppWishList_init() {
+			if(onAppWishList_getLocalStogare('sync_'+onAppWishList_name_app))onAppWishList_is_sync = onAppWishList_getLocalStogare('sync_'+onAppWishList_name_app).onAppWishList_is_sync;
+			onAppWishList_customer_id = shop.customerId;
+			onAppWishList_checkBrowser(function () {
+				if(onAppWishList_customer_id && !onAppWishList_is_sync){
+					onAppWishList_checkSync(function () {
+						onAppWishList_checkActive(function () {
+							onAppWishList_start();
+						});
+					});
+				}else if(!onAppWishList_customer_id){
+					onAppWishList_setLocalStogare('sync_'+onAppWishList_name_app, {onAppWishList_is_sync: false});
+					onAppWishList_checkActive(function () {
+						onAppWishList_start();
+					});
+				}else{
+					onAppWishList_checkActive(function () {
+						onAppWishList_start();
+					});
+				}
+			});
+		}
+		onAppWishList_init();
+	}
+};
+$(document).ready(function(){
+	$.when(getAccount()).then(function () {
+		DHS.init();
+	});
+	new WOW().init();
+})
